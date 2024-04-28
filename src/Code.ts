@@ -132,8 +132,9 @@ function action(req: ActionRequest): object {
 
     let logSheet;
 
-    const allSheets = SpreadsheetApp.getActiveSpreadsheet()
-        .getSheets()
+    const activeSpreadsheet = SpreadsheetApp.getActiveSpreadsheet()
+
+    const allSheets = activeSpreadsheet.getSheets()
         .map(s => s.getName());
 
     const sheetNameEmpty = sheetName === '';
@@ -148,9 +149,9 @@ function action(req: ActionRequest): object {
             });
         }
 
-        logSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(sheetName);
+        logSheet = activeSpreadsheet.getSheetByName(sheetName);
     } else {
-        logSheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+        logSheet = activeSpreadsheet.getActiveSheet();
     }
 
     if (logSheet === null) {
