@@ -22,7 +22,7 @@ const createJsonResponse = (content: object): GoogleAppsScript.Content.TextOutpu
 const capitalizeFirstLetter = (str: string): string => str[0].toUpperCase() + str.slice(1);
 
 function setFields(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: string[]) {
-    const firstRow = sheet.getDataRange().getValues()[0];
+    const firstRow = sheet.getRange(1, fields.length).getValues()[0];
 
     // Checking if columns in sheet and fields are matching
     if (firstRow.toString() !== '') {
@@ -123,17 +123,12 @@ function action(
         ' ' +
         now.toLocaleTimeString('en-US');
 
-    // Inserting a row after the first row
-    logSheet.insertRowAfter(1);
-
-    // Filling the latest data in the second row
-    for (let idx = 0; idx < fields.length; idx++) {
-        logSheet.getRange(2, idx + 1).setValue(jsonData[fields[idx]]);
-
-        if (idx === fields.length - 1) {
-            logSheet.getRange(2, idx + 2).setValue(date);
-        }
-    }
+    logSheet
+        .insertRowAfter(1)
+        .getRange(2, 1, 1, fields.length + 1)
+        .setValues([
+            [...fields.map(field => jsonData[field]), date]
+        ]);
 
     if (email !== '') {
         const emailData = fields.reduce((a, c) => ({ ...a, [c]: jsonData[c] }), {});
@@ -153,6 +148,6 @@ function action(
 
     return createJsonResponse({
         status: 'OK',
-        message: 'Submission logged successfully',
+        message: `Submission logged successfully: ${MailApp.getRemainingDailyQuota()}`,
     });
 }
