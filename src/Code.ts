@@ -6,7 +6,7 @@ type ActionRequest = {
 };
 
 type CaptchaInfo = {
-    type: 'recaptcha_v2' | 'none',
+    type: 'cloudflare_turnstile' | 'recaptcha_v2' | 'recaptcha_v3' | 'none',
     data: {
         secretKey: string
     }
