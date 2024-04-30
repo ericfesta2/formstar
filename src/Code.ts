@@ -72,6 +72,26 @@ function action(
     }
 
     switch (captcha.type) {
+        case 'cloudflare_turnstile': {
+            const jsonResponse = JSON.parse(
+                UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
+                    method: 'post',
+                    payload: {
+                        response: jsonData['cf-turnstile-response'],
+                        secret: captcha.data.secretKey
+                    }
+                }).getContentText()
+            );
+
+            if (!jsonResponse.success) {
+                return createJsonResponse({
+                    status: 'error',
+                    message: 'CAPTCHA challenge failed.'
+                });
+            }
+
+            break;
+        }
         case 'recaptcha_v2': {
             const siteKey = jsonData['gCaptchaResponse'];
 
