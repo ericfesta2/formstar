@@ -1,7 +1,6 @@
 type Properties = {
     sheetName: string,
     emailSubject: string,
-    formHeading: string,
     email: string,
     fields: string[],
     captcha: CaptchaInfo
@@ -20,6 +19,11 @@ const createJsonResponse = (content: object): GoogleAppsScript.Content.TextOutpu
     ContentService.createTextOutput(JSON.stringify(content)).setMimeType(ContentService.MimeType.JSON);
 
 const capitalizeFirstLetter = (str: string): string => str[0].toUpperCase() + str.slice(1);
+
+const formatEmail = (data: { [key: string]: any }) =>
+    Object.entries(data)
+        .map(([heading, resp]) => `${capitalizeFirstLetter(heading)}:\n${resp}`)
+        .join('\n\n');
 
 function setFields(sheet: GoogleAppsScript.Spreadsheet.Sheet, fields: string[]) {
     const firstRow = sheet.getRange(1, fields.length).getValues()[0];
@@ -50,12 +54,11 @@ function action(
     req: GoogleAppsScript.Events.DoPost, {
         sheetName = '',
         emailSubject = 'New Form Submission',
-        formHeading = 'Form Submission',
         email = '',
         fields = ['name', 'email', 'message'],
         captcha = { type: 'none', data: { secretKey: '' } }
     }: Properties
-): object {
+): GoogleAppsScript.Content.TextOutput {
     let { postData: { contents } } = req;
     let jsonData: { [key: string]: any };
 
@@ -131,23 +134,16 @@ function action(
         ]);
 
     if (email !== '') {
-        const emailData = fields.reduce((a, c) => ({ ...a, [c]: jsonData[c] }), {});
-        const htmlBody = HtmlService.createTemplateFromFile('EmailTemplate');
-        htmlBody.data = emailData;
-        htmlBody.formHeading = formHeading;
-
-        const emailBody = htmlBody.evaluate().getContent();
-
         MailApp.sendEmail({
             to: email,
             subject: emailSubject,
-            htmlBody: emailBody,
+            body: formatEmail(fields.reduce((a, c) => ({ ...a, [c]: jsonData[c] }), {})),
             replyTo: jsonData.email,
         });
     }
 
     return createJsonResponse({
         status: 'OK',
-        message: `Submission logged successfully: ${MailApp.getRemainingDailyQuota()}`,
+        message: 'Submission logged successfully',
     });
 }
