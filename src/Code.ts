@@ -7,9 +7,21 @@ type Properties = {
 };
 
 type CaptchaInfo = {
-    type: 'cloudflare_turnstile' | 'recaptcha_v2' | 'recaptcha_v3' | 'none',
+    type: 'cloudflare_turnstile' | 'recaptcha' | 'none',
     data: {
-        secretKey: string
+        secretKey: string,
+        reCaptchaV3MinScore?: number
+    }
+};
+
+const CaptchaDetails: { [key in Exclude<CaptchaInfo['type'], 'none'> ] : { tokenKey: string, endpoint: string } } = {
+    'cloudflare_turnstile': {
+        tokenKey: 'cf-turnstile-response',
+        endpoint: 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
+    },
+    'recaptcha': {
+        tokenKey: 'g-recaptcha-response',
+        endpoint: 'https://www.google.com/recaptcha/api/siteverify'
     }
 };
 
@@ -20,7 +32,7 @@ const createJsonResponse = (content: object): GoogleAppsScript.Content.TextOutpu
 
 const capitalizeFirstLetter = (str: string): string => str[0].toUpperCase() + str.slice(1);
 
-const formatEmail = (data: { [key: string]: any }) =>
+const formatEmail = (data: { [key: string]: any }): string =>
     Object.entries(data)
         .map(([heading, resp]) => `${capitalizeFirstLetter(heading)}:\n${resp}`)
         .join('\n\n');
@@ -59,7 +71,7 @@ function action(
         captcha = { type: 'none', data: { secretKey: '' } }
     }: Properties
 ): GoogleAppsScript.Content.TextOutput {
-    let { postData: { contents } } = req;
+    const { postData: { contents } } = req;
     let jsonData: { [key: string]: any };
 
     try {
@@ -67,59 +79,41 @@ function action(
     } catch (err) {
         return createJsonResponse({
             status: 'error',
-            message: 'Invalid JSON format',
+            message: 'Invalid JSON format'
         });
     }
 
-    switch (captcha.type) {
-        case 'cloudflare_turnstile': {
-            const jsonResponse = JSON.parse(
-                UrlFetchApp.fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-                    method: 'post',
-                    payload: {
-                        response: jsonData['cf-turnstile-response'],
-                        secret: captcha.data.secretKey
-                    }
-                }).getContentText()
-            );
+    if (captcha.type !== 'none') {
+        const captchaDetail = CaptchaDetails[captcha.type];
+        const token = jsonData[captchaDetail.tokenKey];
 
-            if (!jsonResponse.success) {
-                return createJsonResponse({
-                    status: 'error',
-                    message: 'CAPTCHA challenge failed.'
-                });
-            }
-
-            break;
+        if (!token) {
+            return createJsonResponse({
+                status: 'error',
+                message: 'No CAPTCHA token received in request'
+            });
         }
-        case 'recaptcha_v2': {
-            const siteKey = jsonData['gCaptchaResponse'];
 
-            if (!siteKey) {
-                return createJsonResponse({
-                    status: 'error',
-                    message: "reCAPTCHA verification under key 'gCaptchaResponse' is required."
-                });
-            }
-
-            const captchaResponse = UrlFetchApp.fetch('https://www.google.com/recaptcha/api/siteverify', {
+        const captchaResponse = JSON.parse(
+            UrlFetchApp.fetch(captchaDetail.endpoint, {
                 method: 'post',
                 payload: {
-                    response: siteKey,
-                    secret: captcha.data.secretKey,
+                    response: token,
+                    secret: captcha.data.secretKey
                 }
+            }).getContentText()
+        );
+
+        if (
+            !captchaResponse.success || (
+                typeof captchaResponse['score'] === 'number' && typeof captcha.data.reCaptchaV3MinScore === 'number' &&
+                captchaResponse['score'] < captcha.data.reCaptchaV3MinScore
+            )
+        ) {
+            return createJsonResponse({
+                status: 'error',
+                message: 'CAPTCHA challenge failed.'
             });
-
-            const captchaJson = JSON.parse(captchaResponse.getContentText());
-
-            if (!captchaJson.success) {
-                return createJsonResponse({
-                    status: 'error',
-                    message: 'Please tick the box to verify you are not a robot.'
-                });
-            }
-
-            break;
         }
     }
 
