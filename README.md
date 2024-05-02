@@ -1,47 +1,32 @@
-<h1 align="center">FormEasy</h1>
+# Formstar
 
-<p align="center">
-  <a href="https://github.com/Basharath/FormEasy/blob/master/LICENSE" target="blank">
-    <img src="https://img.shields.io/github/license/Basharath/FormEasy" alt="FormEasy licence" />
-  </a>
-  <a href="https://github.com/Basharath/FormEasy/fork" target="blank">
-    <img src="https://img.shields.io/github/forks/Basharath/FormEasy" alt="FormEasy forks"/>
-  </a>
-  <a href="https://github.com/Basharath/FormEasy/stargazers" target="blank">
-    <img src="https://img.shields.io/github/stars/Basharath/FormEasy" alt="FormEasy stars"/>
-  </a>
-  <a href="https://github.com/Basharath/FormEasy/issues" target="blank">
-    <img src="https://img.shields.io/github/issues/Basharath/FormEasy" alt="FormEasy issues"/>
-  </a>
-  <a href="https://github.com/Basharath/FormEasy/pulls" target="blank">
-    <img src="https://img.shields.io/github/issues-pr/Basharath/FormEasy" alt="FormEasy pull-requests"/>
-  </a>
-</p>
+Formstar is a serverless form backend library for [Google Apps Script](https://script.google.com) that makes handling form submissions from static websites easy. Formstar is a fork of [FormEasy](https://github.com/Basharath/FormEasy) with support for Cloudflare Turnstile CAPTCHAs, enhanced support for reCAPTCHA v3, TypeScript source code, and various other optimizations.
 
-FormEasy is a free and open source apps script library that lets you receive forms from your static sites very easily.
+Google Apps Script ID: `1-0U5H6zqVyAnYjBekxDYvx8PoWdSHjf6L6m_GKMK4wE96-Z-9PVtyemi`
 
-Script ID: `1CAyzGbXdwMlko81SbJAjRp7ewxhyGKhDipDK4v8ZvlpYqrMAAzbFNccL`
+## Setup
 
-## Adding FormEasy library to Apps Script
+1. Create a new Google Sheets file within Google Drive - this is where your form data gets stored
+2. In the Sheets menu bar, click Extensions > Apps Script
+3. In the left sidebar of the Apps Script project, click on the `+` button next to `Libraries`
+4. Add the above `Google Apps Script ID` above, click on the `Look up` button, and select the latest version
+   (either the latest numeric version for a stable release or `HEAD (Development mode)` to always receive
+   the latest changes as soon as possible), then click on the `Add` button.
 
-1. Open a new Google sheets file(this is where your form data gets stored)
-2. From the menu bar click Extensions > Apps Script and it opens up a new apps script file
-3. In the left bar of apps script file click `+` button beside `Libraries`
-4. Add the `Script ID` listed above and click `Look up` button and select the latest version. Note the identifier it is going to be used to invoke the functions in the library and finally click `Add` button.
-
-Now you can use `FormEasy` object inside the apps script file.
+Your new Apps Script project can now use the `Formstar` JavaScript object.
 
 ## Usage
 
-Clear the default function if any in the apps script file and add the below function.
+Clear the contents of the Apps Script editor, and add one of the below functions, depending on your needs.
 
-**Simplest case**
+**Minimal Configuration**
 
 ```js
-function doPost(req) {
-  FormEasy.setEmail('youremail@domain.com'); // To receive email notification(optional)
-  return FormEasy.action(req); // Mandatory to return action method
-}
+const doPost = req =>
+  Formstar.action(req, {
+    email: 'youremail@domain.com',
+  });
+
 ```
 
 The default data fields are: name, email and message. To add more, use `setFields` method as shown below.
