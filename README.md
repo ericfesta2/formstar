@@ -1,6 +1,6 @@
 # Formstar
 
-Formstar is a serverless form backend library for [Google Apps Script](https://script.google.com) that makes handling form submissions from static websites easy. Formstar is a fork of [FormEasy](https://github.com/Basharath/FormEasy) with support for Cloudflare Turnstile CAPTCHAs, enhanced support for reCAPTCHA v3, TypeScript source code, and various other optimizations.
+Formstar is a serverless form backend library for [Google Apps Script](https://script.google.com) that makes handling form submissions from static websites easy. Formstar is a fork of the [FormEasy](https://github.com/Basharath/FormEasy) project with support for Cloudflare Turnstile CAPTCHAs, enhanced support for reCAPTCHA v3, TypeScript source code, and various other optimizations.
 
 Google Apps Script ID: `1-0U5H6zqVyAnYjBekxDYvx8PoWdSHjf6L6m_GKMK4wE96-Z-9PVtyemi`
 
@@ -17,236 +17,53 @@ Your new Apps Script project can now use the `Formstar` JavaScript object.
 
 ## Usage
 
-Clear the contents of the Apps Script editor, and add one of the below functions, depending on your needs.
-
-**Minimal Configuration**
+Clear the contents of the Apps Script editor, and add the below function, replacing `<SETTINGS>`
+with any combination of the options specified below.
 
 ```js
 const doPost = req =>
   Formstar.action(req, {
-    email: 'youremail@domain.com',
+    <SETTINGS>
   });
 
 ```
 
-The default data fields are: name, email and message. To add more, use `setFields` method as shown below.
+### Configuration
 
-**With more customizations**
+| Setting    | Description | Default Value |
+| ---------- | ----------- | ------------- |
+| `sheetName`  | The name of the sheet within the target spreadsheet to which form submissions should be written. If empty, uses the default sheet within the target spreadsheet. | `''` |
+| `emailSubject` | The subject line of emails sent to the address specified by the `email` setting. Has no effect if `email` is not configured or set to an empty string. | `'New Form Submission'` |
+| `fields` | The header fields of the target sheet that records form submissions. If not already present in the sheet, Formstar will write them to the first row of the sheet. | `['name', 'email', 'message']` |
+| `captcha` | Settings for configuring recommended spam protection. reCAPTCHA v2, reCAPTCHA v3, and Cloudflare Turnstile (types `recaptcha` for either v2 or v3, and `cloudflare_turnstile`) are supported. For reCAPTCHA v3, you may set the numeric `data.reCaptchaV3MinScore` attribute to the minimum reCAPTCHA v3 score for which submissions should be accepted. Note that you must configure a reCAPTCHA or Turnstile project that supplies site and secret keys to use this capability. | `<NONE>` |
+
+**Example**
 
 ```js
-function doPost(req) {
-  FormEasy.setSheet('Sheet1'); // Optional
-  FormEasy.setEmail('youremail@domain.com'); // To receive email notification(optional)
-  FormEasy.setSubject('Email subject'); // Optional
-  FormEasy.setFormHeading('Form heading inside email'); // Optional
-  FormEasy.setFields('name', 'email', 'website', 'message', ...); // Optional(name, email, messsage are default)
-  return FormEasy.action(req); // It should be at the end and return it
-}
+const doPost = req =>
+  Formstar.action(req, {
+    emailSubject: 'New Form Submission from My Site',
+    email: 'youremail@domain.com',
+    fields: ['name', 'email', 'phone', 'birthday', 'message'],
+    captcha: {
+      type: 'cloudflare_turnstile',
+      data: {
+        secretKey: '<TURNSTILE_SECRET_KEY_HERE>'
+      }
+    }
+  });
 ```
 
+### Deployment
 After adding the above function click the `Deploy` button at top right corner and select **New deployment** and select type to `Web app` from the gear icon.
 
-Select/fill the below options
+Select the below options:
 
-- Description(optional),
-- Execute as `Me(you email)`
+- Description (optional),
+- Execute as `Me (<YOUR EMAIL>)`
 - Who has access `Anyone`
 
-Click `Deploy` button(authorize the script if you haven't done before) and you will get a URL under `Web app`, copy that and it is going to be the end point for submitting the POST request.
+Click on the `Deploy` button (authorize the script if you haven't already), and you will get a URL under `Web app`.
+Copy that URL and use it as the endpoint for submitting POST requests from your frontend form(s).
 
-Note: You need not make _New deployment_ everytime if you want to use the same web app URL. Select **Manage deployments** and update the version to keep the same URL.
-
-## Form submission using `fetch`
-
-```js
-const data = {
-  name: 'John',
-  email: 'john@domain.com',
-  message: 'Receiving forms is easy and simple now!',
-};
-
-const url = 'https://script.google.com/macros/s/<Deployment ID>/exec';
-
-fetch(url, {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'text/plain;charset=utf-8',
-  },
-  body: JSON.stringify(data),
-})
-  .then((res) => res.json())
-  .then((data) => console.log('data', data))
-  .catch((err) => console.log('err', err));
-```
-
-Note: The keys of the `data` object should match with the fields that are set using `setFields` method in the apps script file. The default keys are `name`, `email` and `message`.
-
-Article: https://devapt.com/formspree-alternative-formeasy
-
-## Demo submission with live Google sheet
-
-Here is the [demo code](https://stackblitz.com/edit/js-55dzc8?file=index.html,index.js) and the live [Google sheet](https://docs.google.com/spreadsheets/d/13sGrLUk0ScU1qfRyOZzFG5pnksh7IAiTJw1Eio1jfaE/edit#gid=0) to get an idea on how this FormEasy library helps in receiving forms.
-
-## Captcha validation
-
-FormEasy supports multiple captcha providers to allow you to prevent unverified submissions by robots. Each provider is unique and requires a unique configuration. Please refer to the documentation below to enable a specific captcha provider.
-
-### Google reCAPTCHA V2
-
-1. Register a site and get your secret key, and site key: [https://www.google.com/recaptcha/admin/create](https://www.google.com/recaptcha/admin/create)
-
-2. In your apps script file, inside function `doPost`, add the following configuration:
-
-```js
-function doPost(req) {
-  // ...
-  FormEasy.setRecaptcha('YOUR_SECRET_KEY'); // To validate reCAPTCHA
-  // ...
-  return FormEasy.action(req); // Mandatory to return action method
-}
-```
-
-3. On your website, add the reCAPTCHA library at the end of the `<head>` tag:
-
-```html
-<head>
-  <!-- ... -->
-
-  <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-</head>
-```
-
-4. Add reCAPTCHA input into your form:
-
-```html
-<div class="g-recaptcha" data-sitekey="YOUR_SITE_KEY"></div>
-```
-
-5. You should see `I am not a robot` box on your site. If you don't, please refer to [reCAPTCHA Docs](https://developers.google.com/recaptcha/docs/display) for debugging.
-
-6. Inside your `fetch()` method, add a reCAPTCHA response from the input:
-
-```js
-const data = {
-  // ...
-  gCaptchaResponse: document.getElementById('g-recaptcha-response').value,
-};
-
-// ...
-```
-
-### Google reCAPTCHA V3
-
-Steps 1 & 2 same as above.
-
-3. On your website, add the reCAPTCHA library at the end of the `<head>` tag:
-
-```html
-<head>
-  <!-- ... -->
-
-  <script src="https://www.google.com/recaptcha/api.js?render=<YOUR_SITE_KEY>" async defer></script>
-</head>
-```
-
-4. Read the form data, reCAPTCHA V3 response token and send the request.
-
-```js
-const siteKey = '<YOUR_SITE_KEY>';
-
-const url = 'https://script.google.com/macros/s/<Deployment ID>/exec';
-
-function handleSubmit(event) {
-  event.preventDefault();
-
-  // Make an API call to get the reCAPTCHA token
-  grecaptcha.ready(function () {
-    grecaptcha.execute(siteKey, { action: 'submit' }).then(function (token) {
-      // Add the reCAPTCHA token to the form data
-      data.gCaptchaResponse = token;
-      data.name = document.getElementById('name').value;
-      data.website = document.getElementById('website').value;
-      data.email = document.getElementById('email').value;
-      data.message = document.getElementById('message').value;
-
-      fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
-        body: JSON.stringify(data),
-      })
-        .then((res) => res.json())
-        .then((data) => console.log('data', data))
-        .catch((err) => console.log('err', err));
-    });
-  });
-}
-
-document.getElementById('<YOUR_FORM_ID>').addEventListener('submit', handleSubmit);
-```
-
-## Video instructions
-
-To see all the above instructions step by step, check this quick [demo video](https://www.youtube.com/watch?v=0u75mtnhifM/).
-
-## FAQs
-
-<details>
-  <summary>1. Is it safe to grant permission to the apps script file while using FormEasy library?
-  </summary>
-  Yes, it is completely safe.
-
-FormEasy code doesn't interact with any remote servers. You can check the source code of the FormEasy library using its ScriptID.
-
-Google shows it unsafe because it hasn't verified the script. Even if you write your own script and grant permission the same message will be shown.
-
-</details>
-
-<details>
-  <summary>2. Can I customize FormEasy script?
-  </summary>
-  
-  Yes. You're free to customize any part of the FormEasy script and deploy on your own to reflect the same.
-
-If you want even others to use your customizations then you can contribute your code and once verified it will be pushed to the main script. You can check [contributing guidelines](https://github.com/Basharath/FormEasy/blob/master/CONTRIBUTING.md).
-
-</details>
-
-<details>
-  <summary>3. What are the limitations of FormEasy?
-  </summary>
-  
-  There are no specific limitations for FormEasy library.
-
-But Google Apps Script limits the email to 100/day and script run time to 6min/execution. You can see more about those [here](https://developers.google.com/apps-script/guides/services/quotas)
-
-</details>
-
-## Contributing
-
-Pull Requests are always welcome!
-
-If you wish to contribute using Github, you can work on any feature ideas you have or any bug fixes if you have noticed.
-
-After your PR gets merged, you'll be apparing on the [contributors page](https://github.com/Basharath/FormEasy/graphs/contributors).
-
-- Please contribute using [GitHub Flow](https://guides.github.com/introduction/flow). Create a branch, add commits, and [open a pull request](https://github.com/Basharath/FormEasy/compare).
-
-- Please read [`CONTRIBUTING`](CONTRIBUTING.md) for details on CODE OF CONDUCT, and the process for submitting pull requests.
-
-## License
-
-FormEasy is distributed using the MIT License. Check the [License details](https://github.com/Basharath/FormEasy/blob/master/LICENSE).
-
-## Support
-
-If you found this library helpful, please give a star ⭐️
-
-If you like this open source work, consider supporting with a coffee ↓
-
-<div align="center">
-  <a href="https://www.buymeacoffee.com/basharath" target="_blank">
-   <img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" height="50px">
-  </a>
-</div>
+Note: You don't need to repeat this process every time you make changes if you want to use the same web app URL. Select **Manage deployments** and update the version to keep the same URL.
